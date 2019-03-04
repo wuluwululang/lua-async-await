@@ -49,3 +49,4 @@ M.await = function(task)
         end
     }
 end
+return M
