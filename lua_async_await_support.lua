@@ -1,18 +1,24 @@
 local M = {}
+local coroutine = _G.coroutine
+local setmetatable = _G.setmetatable
+local setfenv = _G.setfenv
+local type = _G.type
+
 local DEBUG_MODE = true
-local log = function(...)
-    if(DEBUG_MODE)then
-        print(...)
-    end
-end
+local log = DEBUG_MODE and _G.print
 log('DEBUG_MODE OPEN')
+local task_metatable = {
+    __call = function(t, waiter)
+        return t.__ori(waiter)
+    end,
+    wait = function(t, waiter)
+        t.__ori(waiter)
+    end
+}
+task_metatable.__index = task_metatable
 local task = {
     new = function(func)
-        return setmetatable({__ori = func, __type = 'task'},{
-            __call = function(t,...)
-                return t.__ori(...)
-            end
-        })
+        return setmetatable({__ori = func, __type = 'task'},task_metatable)
     end
 }
 local m = {
@@ -29,7 +35,7 @@ local m = {
                     log("await co: ",co)
                     log(p)
                     if(type(p)=='table' and p.__type=='task')then
-                        p{
+                        p:wait{
                             onSuccess = resume,
                             onError = function(e)
                                 log("---")
@@ -62,7 +68,7 @@ M.async = function(func)
 end
 
 M.await = function(task)
-    task{
+    task:wait{
         onSuccess = function(result)
             log('final result: ', result)
         end
