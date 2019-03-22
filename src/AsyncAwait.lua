@@ -46,14 +46,7 @@ local m = {
                     end
                     p:await(Awaiter.new{
                         onSuccess = proxyResume,
-                        onError = function(e)
-                            --if(onError)then
-                            --    onError(e)
-                            --end
-                            print('???',name,e)
-                            --awaiter:onError(e)
-                            error(e)
-                        end
+                        onError = error
                     })
                     if(cache~=temp)then
                         return unpack(cache)
