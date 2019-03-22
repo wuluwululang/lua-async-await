@@ -89,6 +89,7 @@ local m = {
                                 for i = #deferList,1,-1 do
                                     deferList[i]()	
                                 end		
+								deferList = {}
                             end
                         }
                         log('caught ex', ex)
