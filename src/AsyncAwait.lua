@@ -16,9 +16,12 @@ local m = {
         --return a task
         local func = t.__ori
         return Task.new(function(awaiter)
-            print(t.__name, "be await")
             local co
+			local deferList = {}
             setfenv(func, setmetatable({
+				defer = function(func)
+					deferList[#deferList+1] = func
+				end,
                 await = function(p,name)
                     local temp = {}
                     local cache = temp
@@ -26,15 +29,15 @@ local m = {
                         cache = {...}
                     end
                     local proxyResume = function(...)
-                        print("proxyResume",...)
+                        log("proxyResume",...)
                         return baseResume(...)
                     end
                     name = name or ""
                     if(type(p)=='table' and p.__type=='Task')then
-                        log("-task-")
+                        log("- await a taskTable -")
                         p = p
                     elseif(type(p)=='function')then
-                        log("-function-")
+                        log("- await a taskFunction -")
                         p = Task.new(p)
                     else
                         log("?")
@@ -57,22 +60,28 @@ local m = {
                     baseResume = function(...)
                         coroutine.resume(co,...)
                     end
-                    print(name,"yield()")
+                    print("yield()")
                     return coroutine.yield()
                 end,
             },{__index = _G}))
             co = coroutine.create(function()
                 try{
                     function()
-                        log("child task start!",t.__name or '')
+                        log("child task start!")
                         local ret = func(unpack(params))
-                        log('child task end!',t.__name,'result:(',ret,')')
+                        log('child task end!','result:(',ret,')')
+						
                         awaiter:onSuccess(ret)
                     end,
                     catch = function(ex)
                         print(t.__name, "caught ex", ex)
                         awaiter:onError(ex)
-                    end
+                    end,
+					finally = function(ok,ex)
+						for i = #deferList,1,-1 do
+							deferList[i]()	
+						end			
+					end
                 }
             end)
             coroutine.resume(co)
@@ -80,9 +89,9 @@ local m = {
     end
 }
 
-M.async = function(func,name)
-    log('async')
-    return setmetatable({__type = 'asyncFunction', __ori = func,__name = name}, m)
+M.async = function(func)
+	log('async')
+    return setmetatable({__type = 'asyncFunction', __ori = func}, m)
 end
 
 M.await = function(base, onError)
