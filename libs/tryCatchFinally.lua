@@ -1,16 +1,22 @@
-local coxpcall = require('libs.coxpcall')
+local M = {}
+--default xpcall
+M.xpcall = _G.xpcall
+--default errorHandler
+M.errorHandler = function(info)
+    local tbl = { info = info, traceback = debug.traceback()}
+    local str = tostring(tbl)
+    return setmetatable(tbl,{__tostring = function(t)
+        return str..'(use ex.info & ex.traceback to view detail)'
+    end})
+end
 
-return function (block)
+function M.try(block)
     local main = block[1]
     local catch = block.catch
     local finally = block.finally
     assert(main,'main function not found')
     -- try to call it
-    local ok, errors = coxpcall.xpcall(main, function(ex)
-        local trace -- = debug.traceback()
-        ex = type(ex)=='table' and ex or {}
-        return { code = ex.code or -1, level= ex.level or 2, type= ex.type or 'unknown', msg = ex.msg or 'unknown error', trace = trace}
-    end)
+    local ok, errors = M.xpcall(main, M.errorHandler)
     if not ok then
         -- run the catch function
         if catch then
@@ -29,3 +35,4 @@ return function (block)
     end
 end
 
+return M

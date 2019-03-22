@@ -1,5 +1,5 @@
 local Awaiter = require('src.Awaiter')
-local try = require('libs.tryCatchFinally')
+local try = require('libs.tryCatchFinally').try
 local TaskMetatable
 TaskMetatable = {
     __needRef = true,
@@ -19,7 +19,6 @@ TaskMetatable = {
                 awaiter:onError(ex)
             end
         }
-
     end,
     new = function(base)
         if (type(base)=='table')then

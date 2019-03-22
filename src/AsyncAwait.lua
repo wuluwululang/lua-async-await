@@ -1,10 +1,11 @@
 local Awaiter = require('src.Awaiter')
 local Task = require('src.Task')
+local try = require('libs.tryCatchFinally').try
 local coroutine = _G.coroutine
 local setmetatable = _G.setmetatable
 local setfenv = _G.setfenv
 local type = _G.type
-local DEBUG_MODE = true
+local DEBUG_MODE = false
 local log = DEBUG_MODE and print or function() end
 log('DEBUG_MODE OPEN')
 
@@ -26,21 +27,21 @@ local m = {
                     local temp = {}
                     local cache = temp
                     local baseResume = function(...)
+                        log('sync resume: ',...)
                         cache = {...}
                     end
                     local proxyResume = function(...)
-                        log("proxyResume",...)
                         return baseResume(...)
                     end
-                    name = name or ""
+                    name = name or ''
                     if(type(p)=='table' and p.__type=='Task')then
-                        log("- await a taskTable -")
+                        log('- await a taskTable -')
                         p = p
                     elseif(type(p)=='function')then
-                        log("- await a taskFunction -")
+                        log('- await a taskFunction -')
                         p = Task.new(p)
                     else
-                        log("?")
+                        log('?')
                         return p
                     end
                     p:await(Awaiter.new{
@@ -58,31 +59,46 @@ local m = {
                         return unpack(cache)
                     end
                     baseResume = function(...)
-                        coroutine.resume(co,...)
+                        log('async resume: ',...)
+                        local result, msg = coroutine.resume(co,...)
+                        log('result: ',result, msg)
                     end
-                    print("yield()")
-                    return coroutine.yield()
+                    log('yield()')
+                    return coroutine.yield('async-await')
                 end,
             },{__index = _G}))
             co = coroutine.create(function()
                 try{
                     function()
-                        log("child task start!")
+                        log('child task start!')
                         local ret = func(unpack(params))
                         log('child task end!','result:(',ret,')')
-						
+                        try{
+                            function()
+                                for i = #deferList,1,-1 do
+                                    deferList[i]()	
+                                end
+                                deferList = {}
+                            end
+                        }
                         awaiter:onSuccess(ret)
                     end,
                     catch = function(ex)
-                        print(t.__name, "caught ex", ex)
+                        try{
+                            function()
+                                for i = #deferList,1,-1 do
+                                    deferList[i]()	
+                                end		
+                            end
+                        }
+                        log('caught ex', ex)
                         awaiter:onError(ex)
                     end,
 					finally = function(ok,ex)
-						for i = #deferList,1,-1 do
-							deferList[i]()	
-						end			
+                        log('!!!!!!! finally !!!!!!')
 					end
                 }
+                return 'async-await'
             end)
             coroutine.resume(co)
         end)
@@ -94,23 +110,21 @@ M.async = function(func)
     return setmetatable({__type = 'asyncFunction', __ori = func}, m)
 end
 
-M.await = function(base, onError)
+M.await = function(base, onSuccess, onError)
     if(type(base)=='table' and base.__type=='Task')then
-        log("- task -")
+        log('- task -')
         base = base
     elseif(type(base)=='function')then
-        log("- taskFunction -")
+        log('- taskFunction -')
         base = Task.new(base)
     else
         error('must be task or taskFunction')
     end
     base:await(Awaiter.new{
-        onSuccess = function(result)
-            log('final result: ', result)
+        onSuccess = onSuccess or function(result)
+            -- do nothing
         end,
-        onError = onError or function(ex)
-            printJson("await onError",ex)
-        end
+        onError = onError or error
     })
 end
 return M
