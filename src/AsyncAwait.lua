@@ -104,21 +104,4 @@ M.async = function(func)
     return setmetatable({__type = 'asyncFunction', __ori = func}, m)
 end
 
-M.await = function(base, onSuccess, onError)
-    if(type(base)=='table' and base.__type=='Task')then
-        log('- task -')
-        base = base
-    elseif(type(base)=='function')then
-        log('- taskFunction -')
-        base = Task.new(base)
-    else
-        error('must be task or taskFunction')
-    end
-    base:await(Awaiter.new{
-        onSuccess = onSuccess or function(result)
-            -- do nothing
-        end,
-        onError = onError or error
-    })
-end
 return M
