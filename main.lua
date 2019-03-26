@@ -1,6 +1,5 @@
 local AsyncAwaitLib = require('src.AsyncAwait')
 _G.async = AsyncAwaitLib.async
-_G.await = AsyncAwaitLib.await
 local TryCatchLib = require('libs.tryCatchFinally')
 TryCatchLib.xpcall = require('libs.coxpcall').xpcall
 local try = TryCatchLib.try
@@ -47,9 +46,9 @@ local func_2 = async(function(name)
     return "I'm sync-function"
 end)
 
-await(func_2('cwd'),print,print)
+func_2('cwd'):await(Awaiter.new{onSuccess=print,onError=print})
 print('-------------------------------------')
-await(func_1('cwd'),print,print)
+func_1('cwd'):await(Awaiter.new{onSuccess=print,onError=print})
 -- await(func_2('cwd'))
 -- print('-------------------------------------')
 -- await(func_0('cwd'))
