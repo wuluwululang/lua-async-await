@@ -46,7 +46,7 @@ local function id(trace, ...)
     return trace
 end
 
-local function coxpcall(f, err, ...)
+function coxpcall(f, err, ...)
     local current = running()
     if not current then
         if err == id then
@@ -86,7 +86,7 @@ end
 -- Implements pcall with coroutines
 -------------------------------------------------------------------------------
 
-local function copcall(f, ...)
+function copcall(f, ...)
     return coxpcall(f, id, ...)
 end
 

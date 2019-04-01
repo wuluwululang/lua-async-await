@@ -1,12 +1,12 @@
-local AsyncAwaitLib = require('src.AsyncAwait')
-_G.async = AsyncAwaitLib.async
-local TryCatchLib = require('libs.tryCatchFinally')
-TryCatchLib.xpcall = require('libs.coxpcall').xpcall
-local try = TryCatchLib.try
+local lib = require('build.asynclib')
+local try = lib.try
+_G.async = lib.async
+local Task = lib.Task
+local Awaiter = lib.Awaiter
 
 -- replace delay-func of your platform here
 local timer_performWithDelay = function(ms,callback,count)
-    -- such as I implement it on coronaSdk:
+    -- implementing it on coronaSdk:
     timer.performWithDelay(ms,callback,count)
 end
 local function delay(ms)

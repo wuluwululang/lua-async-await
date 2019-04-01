@@ -1,6 +1,6 @@
 local Awaiter = require('src.Awaiter')
 local Task = require('src.Task')
-local try = require('libs.tryCatchFinally').try
+local try = require('libs.try_catch_finally').try
 local coroutine = _G.coroutine
 local setmetatable = _G.setmetatable
 local setfenv = _G.setfenv
@@ -20,8 +20,8 @@ local m = {
             local co
 			local deferList = {}
             setfenv(func, setmetatable({
-				defer = function(func)
-					deferList[#deferList+1] = func
+				defer = function(deferFunc)
+					deferList[#deferList+1] = deferFunc
 				end,
                 await = function(p,name)
                     local temp = {}

@@ -1,5 +1,5 @@
 local Awaiter = require('src.Awaiter')
-local try = require('libs.tryCatchFinally').try
+local try = require('libs.try_catch_finally').try
 local TaskMetatable
 TaskMetatable = {
     __needRef = true,
