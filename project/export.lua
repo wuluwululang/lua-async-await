@@ -1,4 +1,4 @@
-require('libs.try_catch_finally').xpcall = require('project.libs.coxpcall').xpcall
+require('libs.try_catch_finally').xpcall = require('libs.coxpcall').xpcall
 return {
     async = require('src.async_await').async,
     try = require('libs.try_catch_finally').try,
