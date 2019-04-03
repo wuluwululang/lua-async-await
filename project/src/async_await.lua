@@ -1,75 +1,76 @@
 local Awaiter = require('src.Awaiter')
 local Task = require('src.Task')
 local try = require('libs.try_catch_finally').try
+
+local _G = _G
 local coroutine = _G.coroutine
 local setmetatable = _G.setmetatable
 local setfenv = _G.setfenv
 local type = _G.type
-local DEBUG_MODE = false
-local log = DEBUG_MODE and print or function() end
-log('DEBUG_MODE OPEN')
+local error = _G.error
+local unpack = _G.unpack
 
 local M = {}
 local m = {
-    __call = function(t,...)
-        local params = {...}
-        log('async call: ',t,...)
-        --return a task
+    __call = function(t, ...)
+        local params = { ... }
         local func = t.__ori
         return Task.new(function(awaiter)
             local co
-			local deferList = {}
+            local deferList = {}
             setfenv(func, setmetatable({
-				defer = function(deferFunc)
-					deferList[#deferList+1] = deferFunc
-				end,
-                await = function(p,name)
+                defer = function(deferFunc)
+                    deferList[#deferList + 1] = deferFunc
+                end,
+                await = function(p, name)
                     local temp = {}
                     local cache = temp
-                    local baseResume = function(...)
-                        log('sync resume: ',...)
-                        cache = {...}
+                    local baseResume = function(ret, err)
+                        cache = { ret = ret, err = err }
                     end
-                    local proxyResume = function(...)
-                        return baseResume(...)
+                    local proxyResume = function(ret, err)
+                        return baseResume(ret, err)
                     end
                     name = name or ''
-                    if(type(p)=='table' and p.__type=='Task')then
-                        log('- await a taskTable -')
+                    if type(p) == 'table' then
                         p = p
-                    elseif(type(p)=='function')then
-                        log('- await a taskFunction -')
+                    elseif type(p) == 'function' then
                         p = Task.new(p)
                     else
-                        log('?')
                         return p
                     end
-                    p:await(Awaiter.new{
-                        onSuccess = proxyResume,
-                        onError = error
+                    p:await(Awaiter.new {
+                        onSuccess = function(o)
+                            proxyResume(o)
+                        end,
+                        onError = function(e)
+                            proxyResume(nil, e)
+                        end,
                     })
-                    if(cache~=temp)then
-                        return unpack(cache)
+                    if cache ~= temp then
+                        if cache.err ~= nil then
+                            error(cache.err)
+                        end
+                        return cache.ret
                     end
-                    baseResume = function(...)
-                        log('async resume: ',...)
-                        local result, msg = coroutine.resume(co,...)
-                        log('result: ',result, msg)
+                    baseResume = function(ret, err)
+                        coroutine.resume(co, ret, err)
                     end
-                    log('yield()')
-                    return coroutine.yield('async-await')
+                    local ret, err = coroutine.yield()
+                    if err then
+                        error(err)
+                    end
+                    return ret
                 end,
-            },{__index = _G}))
+            }, { __index = _G }))
             co = coroutine.create(function()
-                try{
+                try {
                     function()
-                        log('child task start!')
                         local ret = func(unpack(params))
-                        log('child task end!','result:(',ret,')')
-                        try{
+                        try {
                             function()
-                                for i = #deferList,1,-1 do
-                                    deferList[i]()	
+                                for i = #deferList, 1, -1 do
+                                    deferList[i]()
                                 end
                                 deferList = {}
                             end
@@ -77,20 +78,18 @@ local m = {
                         awaiter:onSuccess(ret)
                     end,
                     catch = function(ex)
-                        try{
+                        try {
                             function()
-                                for i = #deferList,1,-1 do
-                                    deferList[i]()	
-                                end		
-								deferList = {}
+                                for i = #deferList, 1, -1 do
+                                    deferList[i]()
+                                end
+                                deferList = {}
                             end
                         }
-                        log('caught ex', ex)
                         awaiter:onError(ex)
                     end,
-					finally = function(ok,ex)
-                        log('!!!!!!! finally !!!!!!')
-					end
+                    finally = function(ok, ex)
+                    end
                 }
                 return 'async-await'
             end)
@@ -100,8 +99,7 @@ local m = {
 }
 
 M.async = function(func)
-	log('async')
-    return setmetatable({__type = 'asyncFunction', __ori = func}, m)
+    return setmetatable({ __type = 'asyncFunction', __ori = func }, m)
 end
 
 return M

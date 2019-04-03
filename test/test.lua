@@ -5,9 +5,9 @@ local Task = lib.Task
 local Awaiter = lib.Awaiter
 
 -- replace delay-func of your platform here
-local timer_performWithDelay = function(ms,callback,count)
+local timer_performWithDelay = function(ms, callback, count)
     -- implementing it on coronaSdk:
-    timer.performWithDelay(ms,callback,count)
+    timer.performWithDelay(ms, callback, count)
 end
 local function delay(ms)
     return function(awaiter)
@@ -28,15 +28,15 @@ local func_0 = async(function()
 end)
 
 local func_1 = async(function(...)
-    try{
+    try {
         function()
             local delayTime = await(func_0())
-            print('delay: ',delayTime,'ms')
+            print('delay: ', delayTime, 'ms')
             error('throw a exception in try-catch')
             await(delay(delayTime))
         end,
         catch = function(e)
-            print('ex caught!',e)
+            print('ex caught!', e)
         end
     }
     return "I'm async-function"
@@ -46,9 +46,9 @@ local func_2 = async(function(name)
     return "I'm sync-function"
 end)
 
-func_2('cwd'):await(Awaiter.new{onSuccess=print,onError=print})
+func_2('cwd'):await(Awaiter.new { onSuccess = print, onError = print })
 print('-------------------------------------')
-func_1('cwd'):await(Awaiter.new{onSuccess=print,onError=print})
+func_1('cwd'):await(Awaiter.new { onSuccess = print, onError = print })
 -- await(func_2('cwd'))
 -- print('-------------------------------------')
 -- await(func_0('cwd'))

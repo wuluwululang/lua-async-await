@@ -3,7 +3,8 @@ local coxpcall
 
 local function isCoroutineSafe(func)
     local co = coroutine.create(function()
-        return func(coroutine.yield, function() end)
+        return func(coroutine.yield, function()
+        end)
     end)
 
     coroutine.resume(co)
@@ -22,7 +23,9 @@ end
 -------------------------------------------------------------------------------
 local performResume, handleReturnValue
 local oldpcall, oldxpcall = pcall, xpcall
-local pack = table.pack or function(...) return {n = select("#", ...), ...} end
+local pack = table.pack or function(...)
+    return { n = select("#", ...), ... }
+end
 local unpack = table.unpack or unpack
 local running = coroutine.running
 local coromap = setmetatable({}, { __mode = "k" })
@@ -54,14 +57,18 @@ function coxpcall(f, err, ...)
         else
             if select("#", ...) > 0 then
                 local oldf, params = f, pack(...)
-                f = function() return oldf(unpack(params, 1, params.n)) end
+                f = function()
+                    return oldf(unpack(params, 1, params.n))
+                end
             end
             return oldxpcall(f, err)
         end
     else
         local res, co = oldpcall(coroutine.create, f)
         if not res then
-            local newf = function(...) return f(...) end
+            local newf = function(...)
+                return f(...)
+            end
             co = coroutine.create(newf)
         end
         coromap[co] = current
@@ -71,14 +78,16 @@ end
 
 local function corunning(coro)
     if coro ~= nil then
-        assert(type(coro)=="thread", "Bad argument; expected thread, got: "..type(coro))
+        assert(type(coro) == "thread", "Bad argument; expected thread, got: " .. type(coro))
     else
         coro = running()
     end
     while coromap[coro] do
         coro = coromap[coro]
     end
-    if coro == "mainthread" then return nil end
+    if coro == "mainthread" then
+        return nil
+    end
     return coro
 end
 

@@ -68,13 +68,14 @@ local args = { ... }
 local oriRequire = require
 local preload = {}
 local loaded = {}
-local _require = function(path, ...)
+local _require
+_require = function(path, ...)
     if loaded[path] then
         return loaded[path]
     end
     if preload[path] then
         local func = preload[path]
-        local mod = func(...) or true
+        local mod = func(_require, ...) or true
         loaded[path] = mod
         return mod
     end
@@ -83,7 +84,6 @@ end
 local define = function(path, factory)
     preload[path] = factory
 end
-
 
 ]]
 attrDir(config.workdir, function(filepath)
